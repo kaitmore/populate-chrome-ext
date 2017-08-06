@@ -1,32 +1,43 @@
 $(function () {
-
-  //initial query
-  query(draw)
-
+  //hide and disable buttons for first query
   $("#reset").hide()
+  $("#graph").prop("disabled", true);
+  //initial query
+  var sortBy = $("#sort").val()
+  var searchTerm = $("#search-input").val();
+  query(draw, sortBy)
+
+  $("#sort").on('change', function (e) {
+    sortBy = $("#sort").val()
+    if (document.getElementsByTagName("ul").length)
+    { query(listView, sortBy, searchTerm) }
+    else { query(draw, sortBy, searchTerm) }
+  })
+
 
   //listen for submit, grab search data and query for it
   $("#search-form").submit(function (e) {
-    e.preventDefault()
-    var searchTerm = $("#search-input").val()
+    e.preventDefault();
+    searchTerm = $("#search-input").val()
     $("div.tooltip").remove()
     setTimeout(function () {
       $("#reset").show()
     }, 700)
-    console.log(searchTerm)
+
     //if we're on list view
     if (document.getElementsByTagName("ul").length)
-    { query(listView, searchTerm) }
-    else { query(draw, searchTerm) }
+    { query(listView, sortBy, searchTerm) }
+    else { query(draw, sortBy, searchTerm) }
   })
 
   //redraw all items
   $("#reset").click(function () {
     $(this).hide()
     $("#search-input").val('');
+    searchTerm = ''
     $("div.tooltip").remove()
-    if (document.getElementsByTagName("ul").length) query(listView)
-    else query(draw)
+    if (document.getElementsByTagName("ul").length) query(listView, sortBy, searchTerm)
+    else query(draw, sortBy, searchTerm)
   })
 
   //switch to list view
@@ -35,9 +46,9 @@ $(function () {
     $("svg").remove()
     $("#list-view").prop("disabled", true);
     $("#graph").prop("disabled", false);
-    var searchTerm = $("#search-input").val()
+    // var searchTerm = $("#search-input").val()
     console.log(searchTerm)
-    searchTerm.length ? query(listView, searchTerm) : query(listView)
+    searchTerm.length ? query(listView, sortBy, searchTerm) : query(listView, sortBy)
 
   })
 
@@ -47,14 +58,14 @@ $(function () {
     $("#graph").prop("disabled", true);
     $("#list-view").prop("disabled", false);
     $("body").append("<svg> </svg>")
-    var searchTerm = $("#search-input").val()
-    searchTerm.length ? query(draw, searchTerm) : query(draw)
+    searchTerm.length ? query(draw, sortBy, searchTerm) : query(draw, sortBy)
   })
 
 })
 
 
-function listView(items) {
+function listView(items, searchTerm) {
+  var searchTerm = searchTerm !== '' ? searchTerm : 'all'
   $("div.list-container").remove()
   //set up the DOM
   $("body")
@@ -65,7 +76,7 @@ function listView(items) {
     .addClass("list-items")
     .append("<li class ='title'></li>")
   $('.title')
-    .html('Top 10 Visited in category:  <span>Visit Count</span>')
+    .html('Top Visited in Category: ' + searchTerm + '<span>Visit Count</span>')
 
   //sort items based on visit count and grab top 10
   items = items.sort((a, b) => {
@@ -74,7 +85,7 @@ function listView(items) {
     return node.title !== '' && node.url.substring(7, 12) !== 'local'
   })
     .slice(0, 10)
-
+  items = _.uniqBy(items, "title");
   //loop through each sorted item and append to DOM
   $.each(items, function (i, site) {
 
@@ -88,18 +99,42 @@ function listView(items) {
   });
 }
 
+function query(callback, sortBy, searchTerm = '') {
 
-function query(callback, searchTerm = '') {
-  //set start time to the past 7 days
-  let startTime = Date.now() - 604800000;
+  //default start time to the past 7 days
+  let startTime = Date.now() - sortBy;
 
   chrome.history.search({
     text: searchTerm,
     startTime: startTime,
     maxResults: 0
   }, function (items) {
-    callback(items)
+    callback(items, searchTerm)
   })
+}
+
+function getBaseUrl(url) {
+  var temp = document.createElement("a");
+  temp.href = url;
+  return temp.origin + "/"
+}
+
+function merge(array) {
+  var merged = [];
+  array.forEach(function (value) {
+    var existing = merged.filter(function (v, i) {
+      return v.url == value.url;
+    });
+    if (existing.length) {
+      var existingIndex = merged.indexOf(existing[0]);
+      merged[existingIndex].value = merged[existingIndex].value.concat(value.value);
+    } else {
+      if (typeof value.value == 'string')
+        value.value = [value.value];
+      merged.push(value);
+    }
+  });
+  return merged
 }
 
 function draw(items) {
@@ -119,9 +154,16 @@ function draw(items) {
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-  items = items.sort((a, b) => {
-    return a.visitCount > b.visitCount ? -1 : 1;
-  }).slice(0, 150)
+
+  items = items
+    .sort((a, b) => {
+      return a.visitCount > b.visitCount ? -1 : 1;
+    })
+  items.forEach((item) => {
+    item.url = getBaseUrl(item.url);
+  })
+
+  items = _.uniqBy(items, "url");
 
   var max = d3.max(items, function (d) {
     return d.visitCount
@@ -152,6 +194,7 @@ function draw(items) {
     return node.title !== '' && node.title.substr(0, 5) !== 'local'
   })
 
+
   nodes = nodes.map(function (d) {
     return {
       title: d.title,
@@ -163,13 +206,15 @@ function draw(items) {
 
   })
 
+
+
   var newScaledData = [];
   var minDataPoint = d3.min(nodes, function (d) { return d.radius });
   var maxDataPoint = d3.max(nodes, function (d) { return d.radius });
 
   var linearScale = d3.scaleLinear()
     .domain([minDataPoint, maxDataPoint])
-    .range([5, 100]);
+    .range([8, 100]);
 
   for (var i = 0; i < nodes.length; i++) {
     newScaledData[i] = Object.assign({}, nodes[i]);
@@ -194,11 +239,11 @@ function draw(items) {
 
     u.enter()
       .append('circle')
+      .merge(u)
       .attr("class", "circle")
       .attr('index', function (d) {
         return d.index
       })
-      .merge(u)
       .attr('r', function (d) {
         return d.radius
       })
