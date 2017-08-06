@@ -112,6 +112,10 @@
     #reset {
       display: inline;
     }
+
+    #search-form {
+      display: inline
+    }
   </style>
 </head>
 
@@ -119,7 +123,11 @@
 
   <div id="search">
     <span class="glyphicon glyphicon-search"></span>
-    <input type=text id="search-input"></input><button id="submit-button" class="btn btn-primary" type="submit">Search</button>
+    <form id="search-form">
+      <input type=text id="search-input">
+      </input>
+      <button id="submit-button" class="btn btn-primary" type="submit">Search</button>
+    </form>
     <button id="reset" class="btn btn-danger">Reset</button>
   </div>
   <div id="view">
@@ -131,6 +139,8 @@
   <svg>
   </svg>
   <script defer src="js/d3.js"></script>
+  <script defer src="js/lodash.js"></script>
+  <script defer src="js/d3-chromatic.js"></script>
   <script defer src="js/jquery.min.js"></script>
   <script defer src="background.js"></script>
 </body>
