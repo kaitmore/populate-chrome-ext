@@ -162,7 +162,7 @@ function draw(items) {
     }
 
   })
-  console.log(_);
+
   var newScaledData = [];
   var minDataPoint = d3.min(nodes, function (d) { return d.radius });
   var maxDataPoint = d3.max(nodes, function (d) { return d.radius });
