@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/cosmo/bootstrap.min.css" integrity="sha384-h21C2fcDk/eFsW9sC9h0dhokq5pDinLNklTKoxIZRUn3+hvmgQSffLLQ4G4l2eEr"
+    crossorigin="anonymous">
+  <style>
+    *:focus {
+      outline: none;
+    }
+
+    body {
+      background: -webkit-linear-gradient(-45deg, rgba(26, 51, 73, 1) 0%, rgba(15, 24, 43, 1) 100%);
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      font-size: 20px;
+    }
+
+
+    a {
+      color: white;
+    }
+
+    a:hover {
+      color: goldenrod;
+      text-decoration: none;
+    }
+
+    input {
+      width: 250px;
+      height: 55px;
+      color: white;
+      border: none;
+      border-bottom: 2px solid white;
+      font-size: 35px;
+      background: transparent;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      border-bottom: 2px solid white;
+      padding: 5px 0;
+      display: flex;
+      justify-content: space-between;
+      margin: 5px;
+    }
+
+    li.title {
+      font-size: 25px;
+      color: orange;
+      border-bottom: 4px solid white;
+      margin-top: 20px;
+    }
+
+    .btn {
+      margin: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+
+    .glyphicon {
+      color: white;
+      font-size: 30px;
+      top: 13px;
+      padding-right: 10px;
+    }
+
+    div.tooltip {
+      position: absolute;
+      text-align: center;
+      padding: 6px;
+      font: 18px sans-serif;
+      font-weight: bold;
+      background: lightyellow;
+      border: 0px;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .list-container {
+      color: white;
+      margin-top: 40px;
+      padding: 0 200px;
+    }
+
+    #search {
+      position: absolute;
+      top: 0;
+      padding: 10px;
+    }
+
+    #view {
+      position: absolute;
+      top: 0;
+      right: 0;
+      padding: 10px;
+    }
+
+    #viz-wrapper {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #reset {
+      display: inline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="search">
+    <span class="glyphicon glyphicon-search"></span>
+    <input type=text id="search-input"></input><button id="submit-button" class="btn btn-primary" type="submit">Search</button>
+    <button id="reset" class="btn btn-danger">Reset</button>
+  </div>
+  <div id="view">
+    <button id="list-view" class="btn btn-info">List</button>
+    <button id="graph" class="btn btn-warning">Graph</button>
+  </div>
+
+
+  <svg>
+  </svg>
+  <script defer src="js/d3.js"></script>
+  <script defer src="js/jquery.min.js"></script>
+  <script defer src="background.js"></script>
+</body>

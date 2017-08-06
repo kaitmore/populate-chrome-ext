@@ -1,0 +1,19 @@
+{
+  "name": "populate",
+  "version": "1.0",
+  "description": "A chrome extension that visualizes your most visited websites for the past week",
+  "permissions": [
+    "history",
+    "tabs",
+    "storage"
+  ],
+  "browser_action": {
+    "default_title": "My Bookmarks",
+    "default_icon": "icons/icon16.png"
+  },
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "manifest_version": 2,
+  "default_locale": "en"
+}
