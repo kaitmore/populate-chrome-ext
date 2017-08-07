@@ -138,7 +138,7 @@ function merge(array) {
 }
 
 function draw(items) {
-
+  d3.selectAll("svg > *").remove()
   var height = $(window).height();
   width = $(window).width();
 
@@ -171,7 +171,7 @@ function draw(items) {
 
   function compress(arr, max, range) {
     var hardMax = 100;
-    var softMax = 50;
+    var softMax = 75;
     var compressedVals = []
     var xtra = max - softMax;
 
@@ -227,19 +227,24 @@ function draw(items) {
     .force('charge', d3.forceManyBody().strength(-1))
     .force('center', d3.forceCenter(width / 2 + 50, height - 300))
     .force('collision', d3.forceCollide().radius(function (d) {
-      return d.radius + 2
+      return d.radius + 5
     }))
     .on('tick', ticked);
 
   function ticked() {
-
     var u = d3.select('svg')
       .selectAll('circle')
       .data(newScaledData)
 
+    var a = d3.select('svg')
+      .selectAll('a')
+      .data(newScaledData)
+
     u.enter()
+      .append('a')
       .append('circle')
       .merge(u)
+      .merge(a)
       .attr("class", "circle")
       .attr('index', function (d) {
         return d.index
@@ -259,6 +264,9 @@ function draw(items) {
       .style('stroke', "white")
       .style("stroke-width", 2)
 
+    a.attr('href', function (d, i) {
+      return d.url
+    })
 
     u.on("mouseover", function (d, i) {
 
@@ -279,6 +287,8 @@ function draw(items) {
         .style("top", (d3.event.pageY) + "px");
 
     })
+
+
 
     u.on("mouseout", function (d, i) {
       div.style("visibility", "hidden");
