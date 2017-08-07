@@ -138,7 +138,9 @@ function merge(array) {
 }
 
 function draw(items) {
+
   d3.selectAll("svg > *").remove()
+
   var height = $(window).height();
   width = $(window).width();
 
