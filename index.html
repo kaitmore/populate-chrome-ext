@@ -60,21 +60,6 @@
       margin-top: 20px;
     }
 
-    select {
-      -webkit-appearance: none;
-      background: url("data:image/svg+xml;utf8,<svg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='24' height='24' viewBox='0 0 24 24' fill ='#6db76c' ><path fill='#fff' d='M7.406 7.828l4.594 4.594 4.594-4.594 1.406 1.406-6 6-6-6z'></path></svg>");
-      background-position: 100% 55%;
-      background-repeat: no-repeat;
-      border-radius: 0;
-      font-weight: bold;
-      font-size: 18px;
-      letter-spacing: 1px;
-      border: none;
-      height: 46px;
-      width: 80px;
-      color: white;
-    }
-
     .bg {
       display: inline;
       background: #6db76c;
@@ -158,11 +143,6 @@
     <button id="reset" class="btn btn-danger">Reset</button>
   </div>
   <div id="view">
-    <div class="bg"><select id="sort">
-<option value="2592000000">Month</option>
-<option selected="selected" value="604800000">Week</option>
-<option value="86400000">Day</option>
-</select></div>
     <button id="list-view" class="btn btn-info">List</button>
     <button id="graph" class="btn btn-warning">Graph</button>
   </div>
@@ -170,6 +150,7 @@
 
   <svg>
   </svg>
+  <script defer src="helpers.js"></script>
   <script defer src="js/d3.js"></script>
   <script defer src="js/lodash.js"></script>
   <script defer src="js/d3-chromatic.js"></script>

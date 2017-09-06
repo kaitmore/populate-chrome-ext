@@ -2,18 +2,11 @@ $(function () {
   //hide and disable buttons for first query
   $("#reset").hide()
   $("#graph").prop("disabled", true);
+
   //initial query
-  var sortBy = $("#sort").val()
+
   var searchTerm = $("#search-input").val();
-  query(draw, sortBy)
-
-  $("#sort").on('change', function (e) {
-    sortBy = $("#sort").val()
-    if (document.getElementsByTagName("ul").length)
-    { query(listView, sortBy, searchTerm) }
-    else { query(draw, sortBy, searchTerm) }
-  })
-
+  query(draw)
 
   //listen for submit, grab search data and query for it
   $("#search-form").submit(function (e) {
@@ -26,8 +19,8 @@ $(function () {
 
     //if we're on list view
     if (document.getElementsByTagName("ul").length)
-    { query(listView, sortBy, searchTerm) }
-    else { query(draw, sortBy, searchTerm) }
+    { query(listView, searchTerm) }
+    else { query(draw, searchTerm) }
   })
 
   //redraw all items
@@ -36,8 +29,8 @@ $(function () {
     $("#search-input").val('');
     searchTerm = ''
     $("div.tooltip").remove()
-    if (document.getElementsByTagName("ul").length) query(listView, sortBy, searchTerm)
-    else query(draw, sortBy, searchTerm)
+    if (document.getElementsByTagName("ul").length) query(listView, searchTerm)
+    else query(draw, searchTerm)
   })
 
   //switch to list view
@@ -46,9 +39,8 @@ $(function () {
     $("svg").remove()
     $("#list-view").prop("disabled", true);
     $("#graph").prop("disabled", false);
-    // var searchTerm = $("#search-input").val()
-    console.log(searchTerm)
-    searchTerm.length ? query(listView, sortBy, searchTerm) : query(listView, sortBy)
+
+    searchTerm.length ? query(listView, searchTerm) : query(listView)
 
   })
 
@@ -58,7 +50,7 @@ $(function () {
     $("#graph").prop("disabled", true);
     $("#list-view").prop("disabled", false);
     $("body").append("<svg> </svg>")
-    searchTerm.length ? query(draw, sortBy, searchTerm) : query(draw, sortBy)
+    searchTerm.length ? query(draw, searchTerm) : query(draw)
   })
 
 })
@@ -86,55 +78,27 @@ function listView(items, searchTerm) {
   })
     .slice(0, 10)
   items = _.uniqBy(items, "title");
+
   //loop through each sorted item and append to DOM
   $.each(items, function (i, site) {
-
     var item = $('<li>')
     var contents = '<a href="' + site.url + '">' + site.title + "</a>" + "<span>" +
       site.visitCount + "</span>";
     item
       .html(contents)
       .appendTo($(".list-items"));
-
   });
 }
 
-function query(callback, sortBy, searchTerm = '') {
 
-  //default start time to the past 7 days
-  let startTime = Date.now() - sortBy;
+function query(callback, searchTerm = '') {
 
   chrome.history.search({
     text: searchTerm,
-    startTime: startTime,
     maxResults: 0
   }, function (items) {
     callback(items, searchTerm)
   })
-}
-
-function getBaseUrl(url) {
-  var temp = document.createElement("a");
-  temp.href = url;
-  return temp.origin + "/"
-}
-
-function merge(array) {
-  var merged = [];
-  array.forEach(function (value) {
-    var existing = merged.filter(function (v, i) {
-      return v.url == value.url;
-    });
-    if (existing.length) {
-      var existingIndex = merged.indexOf(existing[0]);
-      merged[existingIndex].value = merged[existingIndex].value.concat(value.value);
-    } else {
-      if (typeof value.value == 'string')
-        value.value = [value.value];
-      merged.push(value);
-    }
-  });
-  return merged
 }
 
 function draw(items) {
@@ -161,54 +125,34 @@ function draw(items) {
     .sort((a, b) => {
       return a.visitCount > b.visitCount ? -1 : 1;
     })
+
+
   items.forEach((item) => {
     item.url = getBaseUrl(item.url);
   })
 
-  items = _.uniqBy(items, "url");
+  items = merge(items);
 
   var max = d3.max(items, function (d) {
     return d.visitCount
   })
 
-  function compress(arr, max, range) {
-    var hardMax = 100;
-    var softMax = 75;
-    var compressedVals = []
-    var xtra = max - softMax;
-
-    for (var i = 0; i < arr.length; i++) {
-      let obj = Object.assign({}, arr[i]);
-      if (arr[i].visitCount > softMax) {
-        obj.radius = softMax + (hardMax - softMax) * (parseFloat(arr[i].visitCount - softMax) / xtra)
-        compressedVals.push(obj);
-      } else {
-        obj.radius = obj.visitCount
-        compressedVals.push(obj);
-      }
-    }
-    return compressedVals
-  };
 
   var compressedItems = compress(items, max);
 
-  var nodes = compressedItems.filter((node) => {
-    return node.title !== '' && node.title.substr(0, 5) !== 'local'
-  })
-
-
-  nodes = nodes.map(function (d) {
-    return {
-      title: d.title,
-      radius: d.radius,
-      visitCount: d.visitCount,
-      lastVisitTime: d.lastVisitTime,
-      url: d.url
-    }
-
-  })
-
-
+  var nodes = compressedItems
+    .filter(function (d) {
+      return d.title !== '' && !d.url.includes("localhost")
+    })
+    .map(function (d) {
+      return {
+        title: d.title,
+        radius: d.radius,
+        visitCount: d.visitCount,
+        lastVisitTime: d.lastVisitTime,
+        url: d.url
+      }
+    })
 
   var newScaledData = [];
   var minDataPoint = d3.min(nodes, function (d) { return d.radius });
@@ -227,7 +171,7 @@ function draw(items) {
 
   var simulation = d3.forceSimulation(newScaledData)
     .force('charge', d3.forceManyBody().strength(-1))
-    .force('center', d3.forceCenter(width / 2 + 50, height - 300))
+    .force('center', d3.forceCenter(width/2, height/2))
     .force('collision', d3.forceCollide().radius(function (d) {
       return d.radius + 5
     }))
@@ -272,10 +216,6 @@ function draw(items) {
 
     u.on("mouseover", function (d, i) {
 
-      var cut = function (string) {
-        return string.length < 40 ? string : string.substr(0, 25) + "..."
-      }
-
       var dot = d3.select(this)
       dot.style("stroke-width", 4)
       div.transition()
@@ -289,8 +229,6 @@ function draw(items) {
         .style("top", (d3.event.pageY) + "px");
 
     })
-
-
 
     u.on("mouseout", function (d, i) {
       div.style("visibility", "hidden");
