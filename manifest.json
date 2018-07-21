@@ -1,6 +1,6 @@
 {
   "name": "populate",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "A chrome extension that visualizes your internet usage",
   "permissions": ["history", "tabs", "storage"],
   "browser_action": {
