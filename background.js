@@ -1,256 +1,115 @@
-$(function() {
-  //hide and disable buttons for first query
-  $("#reset").hide();
-  $("#graph").prop("disabled", true);
+let activeSite;
+let startTime;
+let initialState = {
+  _blacklist: [
+    "chrome://",
+    "about:blank",
+    "chrome-extension",
+    "localhost",
+    "chrome-devtools"
+  ]
+};
 
-  //initial query
-  var searchTerm = $("#search-input").val();
-  query(draw);
+function checkForLocalStorage() {
+  if (!localStorage.getItem("populate")) {
+    localStorage.setItem("populate", JSON.stringify(initialState));
+  }
+}
+// Set initial state in localstorage
 
-  //listen for submit, grab search data and query for it
-  $("#search-form").on("input", function(e) {
-    e.preventDefault();
-    searchTerm = $("#search-input").val();
-    $("div.tooltip").remove();
-    setTimeout(function() {
-      $("#reset").show();
-    }, 700);
+/* LISTEN FOR NEW ACTIVE TABS */
+chrome.tabs.onActivated.addListener(newTab => {
+  checkForLocalStorage();
+  // if we have an active site already and that active site url is different
+  // than the new tab's url, we need to set the end time for the previous site
+  // and save the timing to local storage
+  if (activeSite && getBaseUrl(activeSite.url) !== getBaseUrl(newTab.url)) {
+    saveToLocalStorage();
+  }
 
-    //if we're on list view
-    if (document.getElementsByTagName("ul").length) {
-      query(listView, searchTerm);
+  // we need to query for more info about the new tab (like URL),
+  // since it only gives us a tab & window id
+  chrome.tabs.get(newTab.tabId, function(newSite) {
+    let newSiteIsValid = validateNewSite(newSite);
+    if (newSiteIsValid) {
+      setNewActiveSiteAndStartTime(newSite);
     } else {
-      query(draw, searchTerm);
+      clearActiveSiteAndStartTime();
     }
-  });
-
-  //redraw all items
-  $("#reset").click(function() {
-    $(this).hide();
-    $("#search-input").val("");
-    searchTerm = "";
-    $("div.tooltip").remove();
-    if (document.getElementsByTagName("ul").length) query(listView, searchTerm);
-    else query(draw, searchTerm);
-  });
-
-  //switch to list view
-  $("#list-view").click(function() {
-    $("div.tooltip").remove();
-    $("svg").remove();
-    $("#list-view").prop("disabled", true);
-    $("#graph").prop("disabled", false);
-
-    searchTerm.length ? query(listView, searchTerm) : query(listView);
-  });
-
-  //switch back to graph view
-  $("#graph").click(function() {
-    $(".list-container").remove();
-    $("#graph").prop("disabled", true);
-    $("#list-view").prop("disabled", false);
-    $("body").append("<svg> </svg>");
-    searchTerm.length ? query(draw, searchTerm) : query(draw);
   });
 });
 
-function listView(items, searchTerm) {
-  var searchTerm = searchTerm !== "" ? searchTerm : "all";
-  $("div.list-container").remove();
-  //set up the DOM
-  $("body").append("<div class='list-container'></div>");
-  $(".list-container").append("<ul></ul>");
-  $("ul")
-    .addClass("list-items")
-    .append("<li class ='title'></li>");
-  $(".title").html(
-    "Top Visited in Category: " + searchTerm + "<span>Visit Count</span>"
-  );
-
-  //sort items based on visit count and grab top 10
-  items = items
-    .sort((a, b) => {
-      return a.visitCount > b.visitCount ? -1 : 1;
-    })
-    .filter(node => {
-      return node.title !== "" && node.url.substring(7, 12) !== "local";
-    })
-    .slice(0, 10);
-  items = _.uniqBy(items, "title");
-
-  //loop through each sorted item and append to DOM
-  $.each(items, function(i, site) {
-    var item = $("<li>");
-    var contents =
-      '<a href="' +
-      site.url +
-      '">' +
-      site.title +
-      "</a>" +
-      "<span>" +
-      site.visitCount +
-      "</span>";
-    item.html(contents).appendTo($(".list-items"));
-  });
-}
-
-function query(callback, searchTerm = "") {
-  chrome.history.search(
-    {
-      text: searchTerm,
-      maxResults: 0
-    },
-    function(items) {
-      if (items.length === 0) {
-        !$("div#error").length &&
-          $("body").append(
-            "<div id='error'>Start surfin' to see results 🏄‍</div>"
-          );
-      } else {
-        callback(items, searchTerm);
-      }
+/* LISTEN FOR CHANGE OF BASE URL */
+chrome.webNavigation.onCommitted.addListener(newSite => {
+  checkForLocalStorage();
+  let newSiteIsValid = validateNewSite(newSite);
+  if (newSiteIsValid) {
+    if (activeSite && getBaseUrl(newSite.url) !== getBaseUrl(activeSite.url)) {
+      saveToLocalStorage();
     }
-  );
+    setNewActiveSiteAndStartTime(newSite);
+  }
+});
+
+/* LISTEN FOR WINDOW FOCUS */
+chrome.windows.onFocusChanged.addListener(newWindow => {
+  checkForLocalStorage();
+  // if the chrome window looses focus, we want to stop counting and save the current timing
+  // newWindow is an integer, so we can tell if a window has lost focus if it returns -1
+  if (activeSite && newWindow < 0) {
+    saveToLocalStorage();
+  } else {
+    startTime = Date.now();
+  }
+});
+
+function clearActiveSiteAndStartTime() {
+  activeSite = null;
+  startTime = null;
 }
 
-function draw(items) {
-  d3.selectAll("svg > *").remove();
-
-  var height = $(window).height();
-  width = $(window).width();
-
-  var viz = d3
-    .select("svg")
-    .attr("id", "viz")
-    .attr("height", height)
-    .attr("width", width);
-
-  var div = d3
-    .select("body")
-    .append("div")
-    .attr("class", "tooltip")
-    .style("opacity", 0);
-  items = items.sort((a, b) => {
-    return a.visitCount > b.visitCount ? -1 : 1;
-  });
-
-  items.forEach(item => {
-    item.url = getBaseUrl(item.url);
-  });
-
-  items = merge(items);
-
-  var max = d3.max(items, function(d) {
-    return d.visitCount;
-  });
-
-  var compressedItems = compress(items, max);
-
-  var nodes = compressedItems
-    .filter(function(d) {
-      return !d.url.includes("localhost");
-    })
-    .map(function(d) {
-      return {
-        title: d.title || d.url,
-        radius: d.radius,
-        visitCount: d.visitCount,
-        lastVisitTime: d.lastVisitTime,
-        url: d.url
-      };
-    });
-
-  var newScaledData = [];
-  var minDataPoint = d3.min(nodes, function(d) {
-    return d.radius;
-  });
-  var maxDataPoint = d3.max(nodes, function(d) {
-    return d.radius;
-  });
-
-  var linearScale = d3
-    .scaleLinear()
-    .domain([minDataPoint, maxDataPoint])
-    .range([8, 100]);
-
-  for (var i = 0; i < nodes.length; i++) {
-    newScaledData[i] = Object.assign({}, nodes[i]);
-    newScaledData[i].radius = linearScale(nodes[i].radius);
+function validateNewSite(newSite) {
+  if (newSite.transitionType) {
+    let isTransitionValid =
+      newSite.transitionType === "link" ||
+      newSite.transitionType === "typed" ||
+      newSite.transitionType === "auto_bookmark" ||
+      newSite.transitionType === "generated" ||
+      newSite.transitionType === "start_page" ||
+      newSite.transitionType === "reload";
+    // if the transition isn't valid, don't bother with the rest of the
+    // validation and return
+    if (!isTransitionValid) return false;
   }
+  // get blacklist from localstorage
+  let blacklist = JSON.parse(localStorage.getItem("populate"))._blacklist;
 
-  var color = d3.scaleOrdinal(d3.schemeCategory20c);
+  let isSiteValid = blacklist.every(site => !newSite.url.includes(site));
 
-  var simulation = d3
-    .forceSimulation(newScaledData)
-    .force("charge", d3.forceManyBody().strength(-1))
-    .force("center", d3.forceCenter(width / 2, height / 2))
-    .force(
-      "collision",
-      d3.forceCollide().radius(function(d) {
-        return d.radius + 5;
-      })
-    )
-    .on("tick", ticked);
+  return isSiteValid;
+}
 
-  function ticked() {
-    var u = d3
-      .select("svg")
-      .selectAll("circle")
-      .data(newScaledData);
-
-    var a = d3
-      .select("svg")
-      .selectAll("a")
-      .data(newScaledData);
-
-    u.enter()
-      .append("a")
-      .append("circle")
-      .merge(u)
-      .merge(a)
-      .attr("class", "circle")
-      .attr("index", function(d) {
-        return d.index;
-      })
-      .attr("r", function(d) {
-        return d.radius;
-      })
-      .attr("cx", function(d) {
-        return (d.x = Math.max(d.radius, Math.min(width - d.radius, d.x)));
-      })
-      .attr("cy", function(d) {
-        return (d.y = Math.max(d.radius, Math.min(height - d.radius, d.y)));
-      })
-      .attr("fill", function(d) {
-        return color(d.visitCount);
-      })
-      .style("stroke", "white")
-      .style("stroke-width", 2);
-
-    a.attr("href", function(d, i) {
-      return d.url;
-    });
-
-    u.on("mouseover", function(d, i) {
-      var dot = d3.select(this);
-      dot.style("stroke-width", 4);
-      div
-        .transition()
-        .duration(300)
-        .style("opacity", 0.9)
-        .style("visibility", "visible");
-      div
-        .html(cut(d.title) + "<br/> - <br/> Visit Count: " + d.visitCount)
-        .style("left", d3.event.pageX + "px")
-        .style("top", d3.event.pageY + "px");
-    });
-
-    u.on("mouseout", function(d, i) {
-      div.style("visibility", "hidden");
-      var dot = d3.select(this);
-      dot.style("stroke-width", 2);
-    });
-
-    u.exit().remove();
+function saveToLocalStorage() {
+  let endTime = Date.now();
+  let currentState = JSON.parse(localStorage.getItem("populate"));
+  let localStorageVal = currentState[getBaseUrl(activeSite.url)];
+  if (localStorageVal) {
+    currentState[getBaseUrl(activeSite.url)] =
+      localStorageVal + (endTime - startTime);
+  } else {
+    currentState[getBaseUrl(activeSite.url)] = endTime - startTime;
   }
+  console.log("incrementing entry in local storage");
+  localStorage.setItem("populate", JSON.stringify(currentState));
+}
+
+function setNewActiveSiteAndStartTime(newSite) {
+  activeSite = newSite;
+  startTime = Date.now();
+}
+
+function getBaseUrl(url) {
+  var temp = document.createElement("a");
+  temp.href = url;
+  return temp.origin + "/";
 }
