@@ -7,10 +7,11 @@ function getItems() {
     })
     .sort((a, b) => {
       return a.time > b.time ? -1 : 1;
-    });
+    })
+    .slice(0, 100);
   return items;
 }
-  
+
 let graphView = true;
 
 // redraw when tab is activated
