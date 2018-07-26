@@ -1,7 +1,7 @@
 function getItems() {
   let storedSites = JSON.parse(localStorage.getItem("populate")) || {};
   let items = Object.keys(storedSites)
-    .filter(key => !key.includes("_blacklist"))
+    .filter(key => !key.startsWith("_"))
     .map(site => {
       return { url: site, time: storedSites[site] };
     })
@@ -186,12 +186,12 @@ function draw(items) {
   const color = d3.scaleOrdinal(d3.schemeCategory20c);
 
   d3.forceSimulation(newScaledData)
-    .force("charge", d3.forceManyBody().strength(1))
+    .force("charge", d3.forceManyBody().strength(3))
     .force("center", d3.forceCenter(width / 2, height / 2))
     .force(
       "collision",
       d3.forceCollide().radius(function(d) {
-        return d.radius + 5;
+        return d.radius + 10;
       })
     )
     .on("tick", ticked);

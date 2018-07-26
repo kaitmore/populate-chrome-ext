@@ -4,18 +4,21 @@ let initialState = {
   _blacklist: [
     "chrome://",
     "about:blank",
-    "chrome-extension",
+    "chrome-extension://",
     "localhost",
-    "chrome-devtools"
+    "chrome-devtools",
+    "mailto:"
   ]
 };
 
+// TODO: change the data structure so we can store more data about the active site
+
 function checkForLocalStorage() {
+  // Set initial state in localstorage
   if (!localStorage.getItem("populate")) {
     localStorage.setItem("populate", JSON.stringify(initialState));
   }
 }
-// Set initial state in localstorage
 
 /* LISTEN FOR NEW ACTIVE TABS */
 chrome.tabs.onActivated.addListener(newTab => {
@@ -27,7 +30,9 @@ chrome.tabs.onActivated.addListener(newTab => {
     saveToLocalStorage();
   }
 
-  // we need to query for more info about the new tab (like URL),
+  // TODO: if the new active tab site is the same as the old, shouldn't we skip the next bit?
+
+  // query for more info about the new tab (like URL),
   // since it only gives us a tab & window id
   chrome.tabs.get(newTab.tabId, function(newSite) {
     let newSiteIsValid = validateNewSite(newSite);
@@ -54,11 +59,14 @@ chrome.webNavigation.onCommitted.addListener(newSite => {
 /* LISTEN FOR WINDOW FOCUS */
 chrome.windows.onFocusChanged.addListener(newWindow => {
   checkForLocalStorage();
-  // if the chrome window looses focus, we want to stop counting and save the current timing
+  // if the chrome window looses focus, we want to stop counting and save the current timing.
   // newWindow is an integer, so we can tell if a window has lost focus if it returns -1
+  // if it's not, that means we've brought the window back into focus so we should start
+  // incrementing time again
   if (activeSite && newWindow < 0) {
     saveToLocalStorage();
   } else {
+    // TODO: write condition for changing windows, check that activeSite is the same
     startTime = Date.now();
   }
 });
