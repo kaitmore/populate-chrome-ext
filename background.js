@@ -1,5 +1,6 @@
 let activeSite;
 let startTime;
+let lastFocusedWindowId;
 let initialState = {
   _blacklist: [
     "chrome://",
@@ -7,7 +8,8 @@ let initialState = {
     "chrome-extension://",
     "localhost",
     "chrome-devtools",
-    "mailto:"
+    "mailto:",
+    "file://"
   ]
 };
 
@@ -21,55 +23,50 @@ function checkForLocalStorage() {
 }
 
 /* LISTEN FOR NEW ACTIVE TABS */
-chrome.tabs.onActivated.addListener(newTab => {
-  checkForLocalStorage();
-  // if we have an active site already and that active site url is different
-  // than the new tab's url, we need to set the end time for the previous site
-  // and save the timing to local storage
-  if (activeSite && getBaseUrl(activeSite.url) !== getBaseUrl(newTab.url)) {
-    saveToLocalStorage();
-  }
-
-  // TODO: if the new active tab site is the same as the old, shouldn't we skip the next bit?
-
-  // query for more info about the new tab (like URL),
-  // since it only gives us a tab & window id
-  chrome.tabs.get(newTab.tabId, function(newSite) {
-    let newSiteIsValid = validateNewSite(newSite);
-    if (newSiteIsValid) {
-      setNewActiveSiteAndStartTime(newSite);
-    } else {
-      clearActiveSiteAndStartTime();
-    }
-  });
-});
+chrome.tabs.onActivated.addListener(handleNewSite);
 
 /* LISTEN FOR CHANGE OF BASE URL */
-chrome.webNavigation.onCommitted.addListener(newSite => {
-  checkForLocalStorage();
-  let newSiteIsValid = validateNewSite(newSite);
-  if (newSiteIsValid) {
-    if (activeSite && getBaseUrl(newSite.url) !== getBaseUrl(activeSite.url)) {
-      saveToLocalStorage();
-    }
-    setNewActiveSiteAndStartTime(newSite);
-  }
-});
+chrome.webNavigation.onCommitted.addListener(handleNewSite);
 
 /* LISTEN FOR WINDOW FOCUS */
-chrome.windows.onFocusChanged.addListener(newWindow => {
+chrome.windows.onFocusChanged.addListener(handleNewWindow);
+
+function handleNewSite(incomingSite) {
   checkForLocalStorage();
-  // if the chrome window looses focus, we want to stop counting and save the current timing.
-  // newWindow is an integer, so we can tell if a window has lost focus if it returns -1
-  // if it's not, that means we've brought the window back into focus so we should start
-  // incrementing time again
-  if (activeSite && newWindow < 0) {
+  let incomingSiteId = incomingSite.tabId || incomingSite.id;
+  // query for more info about the new tab (like URL),
+  // since `newTab` only gives us a tab & window id
+  chrome.tabs.get(incomingSiteId, function(newSite) {
+    // if we have an active site already and that active site url is different
+    // than the new tab's url, we need to set the end time for the previous site
+    // and save the timing to local storage
+    if (activeSite && getBaseUrl(newSite.url) !== getBaseUrl(activeSite.url)) {
+      saveToLocalStorage();
+      validateAndSetNewActiveSiteAndStartTime(newSite);
+    } else if (!activeSite) {
+      validateAndSetNewActiveSiteAndStartTime(newSite);
+    }
+  });
+}
+
+function handleNewWindow(newWindowId) {
+  checkForLocalStorage();
+  // If the chrome window looses focus, we want to stop counting and save the current timing.
+  // newWindowId is an integer, so we can tell if a window has lost focus if it returns -1.
+  if (activeSite && newWindowId < 0) {
     saveToLocalStorage();
-  } else {
-    // TODO: write condition for changing windows, check that activeSite is the same
+  } else if (lastFocusedWindowId === newWindowId) {
+    // If the newWindowId is the same as the old window, that means we've brought that window back
+    // into focus so we should start incrementing time again for whatever site was previously active.
     startTime = Date.now();
+  } else if (newWindowId > 0) {
+    // If we've brought a different window into focus, we should query for the currently selected
+    //  tab in that new window and call our new site handler
+    chrome.tabs.getSelected(newWindowId, function(newTab) {
+      handleNewSite(newTab);
+    });
   }
-});
+}
 
 function clearActiveSiteAndStartTime() {
   activeSite = null;
@@ -111,9 +108,15 @@ function saveToLocalStorage() {
   localStorage.setItem("populate", JSON.stringify(currentState));
 }
 
-function setNewActiveSiteAndStartTime(newSite) {
-  activeSite = newSite;
-  startTime = Date.now();
+function validateAndSetNewActiveSiteAndStartTime(newSite) {
+  let newSiteIsValid = validateNewSite(newSite);
+  if (newSiteIsValid) {
+    activeSite = newSite;
+    startTime = Date.now();
+    lastFocusedWindowId = activeSite.windowId;
+  } else {
+    clearActiveSiteAndStartTime();
+  }
 }
 
 function getBaseUrl(url) {
