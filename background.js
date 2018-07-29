@@ -111,6 +111,7 @@ function saveToLocalStorage() {
 function validateAndSetNewActiveSiteAndStartTime(newSite) {
   let newSiteIsValid = validateNewSite(newSite);
   if (newSiteIsValid) {
+    console.log("setting new active site");
     activeSite = newSite;
     startTime = Date.now();
     lastFocusedWindowId = activeSite.windowId;

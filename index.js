@@ -43,9 +43,8 @@ $(function() {
     e.preventDefault();
     searchTerm = $("#search-input").val();
     $("div.tooltip").remove();
-    setTimeout(function() {
-      $("#reset").show();
-    }, 700);
+
+    $("#reset").show();
 
     let filteredItems = getItems().filter(site =>
       site.url.includes(searchTerm)
@@ -123,8 +122,8 @@ function listView(items) {
 
 function msToMinAndSec(millis) {
   const d = new Date(millis);
-  const hours = d.getUTCHours() ? `${d.getUTCHours()} hrs, ` : "";
-  const minutes = d.getUTCMinutes() ? `${d.getUTCMinutes()} mins, ` : "";
+  const hours = d.getUTCHours() ? `${d.getUTCHours()} hrs ` : "";
+  const minutes = d.getUTCMinutes() ? `${d.getUTCMinutes()} mins ` : "";
   const seconds = d.getUTCSeconds() ? `${d.getUTCSeconds()} secs` : "";
   return hours + minutes + seconds;
 }
