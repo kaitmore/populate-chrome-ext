@@ -25,6 +25,18 @@ chrome.tabs.onActivated.addListener(function(x) {
   });
 });
 
+chrome.windows.onFocusChanged.addListener(function(newWindowId) {
+  if (newWindowId > 0) {
+    chrome.tabs.getSelected(newWindowId, function(active) {
+      if (active.url === "chrome://newtab/" && graphView) {
+        draw(getItems());
+      } else if (active.url === "chrome://newtab/") {
+        listView(getItems());
+      }
+    });
+  }
+});
+
 $(function() {
   // hide and disable buttons for first query
   $("#reset").hide();
