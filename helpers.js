@@ -19,29 +19,6 @@ function compress(arr, max, range) {
   }
   return compressedVals;
 }
-
-//Truncate a title
-function cut(string) {
-  return string.length < 40 ? string : string.substr(0, 25) + "...";
-}
-
-// Get the host name for graph mode
-function getHostName(url) {
-  var base = url.split("//");
-  base = base[1].split(".");
-  var name = "";
-
-  if (base[0].includes(":")) base = base[0].split(":");
-  if (base[0] === "www") base = base.slice(1);
-
-  base.forEach(function(word, i) {
-    if (i != base.length - 1) name += word + " ";
-  });
-
-  name = name[0].toUpperCase() + name.slice(1);
-  return name;
-}
-
 function getBaseUrl(url) {
   var temp = document.createElement("a");
   temp.href = url;

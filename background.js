@@ -100,22 +100,15 @@ function saveToLocalStorage() {
   } else {
     currentState[getBaseUrl(activeSite.url)] = endTime - startTime;
   }
-  console.log(
-    `incrementing entry for ${getBaseUrl(activeSite.url)} in local storage`
-  );
   localStorage.setItem("populate", JSON.stringify(currentState));
 }
 
 function validateAndSetNewActiveSiteAndStartTime(newSite) {
   let newSiteIsValid = validateNewSite(newSite);
   if (newSiteIsValid) {
-    console.log(`setting new active site: ${newSite && newSite.url}`);
     activeSite = newSite;
     startTime = Date.now();
   } else {
-    console.log(
-      `the new site, ${newSite.url}, isn't valid, clearing active site`
-    );
     clearActiveSiteAndStartTime();
   }
 }
