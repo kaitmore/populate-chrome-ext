@@ -41,32 +41,21 @@ function handleNewSite(incomingSite) {
     // than the new tab's url, we need to set the end time for the previous site
     // and save the timing to local storage
     if (activeSite && getBaseUrl(newSite.url) !== getBaseUrl(activeSite.url)) {
-      console.log(
-        "there is already an active site, and the new site is different"
-      );
       saveToLocalStorage();
       validateAndSetNewActiveSiteAndStartTime(newSite);
     } else if (!activeSite) {
-      console.warn("handleNewSite => no active site");
       validateAndSetNewActiveSiteAndStartTime(newSite);
     }
   });
 }
 
 function handleNewWindow(newWindowId) {
-  console.log("in handle new window");
   checkForLocalStorage();
   // If the chrome window looses focus, we want to stop counting and save the current timing.
   // newWindowId is an integer, so we can tell if a window has lost focus if it returns -1.
   if (activeSite && newWindowId < 0) {
-    console.log(
-      `there is an active site: ${
-        activeSite.url
-      }, and chrome has gone out of focus`
-    );
     saveToLocalStorage();
   } else if (newWindowId > 0) {
-    console.log("there is a new window in focus, querying for new tab data");
     // If we've brought a different window into focus, we should query for the currently selected
     //  tab in that new window and call our new site handler
     chrome.tabs.getSelected(newWindowId, function(newTab) {
@@ -120,16 +109,12 @@ function saveToLocalStorage() {
 function validateAndSetNewActiveSiteAndStartTime(newSite) {
   let newSiteIsValid = validateNewSite(newSite);
   if (newSiteIsValid) {
-    console.log(
-      `the new site, ${
-        newSite.url
-      } is valid, setting new active site: ${newSite && newSite.url}`
-    );
+    console.log(`setting new active site: ${newSite && newSite.url}`);
     activeSite = newSite;
     startTime = Date.now();
   } else {
-    console.warn(
-      `the new site,  ${newSite.url} isn't valid, clearing active site`
+    console.log(
+      `the new site, ${newSite.url}, isn't valid, clearing active site`
     );
     clearActiveSiteAndStartTime();
   }

@@ -17,7 +17,6 @@ let graphView = true;
 // redraw when tab is activated
 chrome.tabs.onActivated.addListener(function(x) {
   chrome.tabs.get(x.tabId, function(active) {
-    console.log("ACTIVE URL", active.url);
     if (active.url === "chrome://newtab/" && graphView) {
       draw(getItems());
     } else if (active.url === "chrome://newtab/") {
