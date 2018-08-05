@@ -1,5 +1,5 @@
 {
-  "name": "ClockIt",
+  "name": "Time Cloud",
   "version": "1.0.0",
   "description": "A chrome extension that visualizes your time on the web",
   "permissions": ["history", "tabs", "storage", "webNavigation"],

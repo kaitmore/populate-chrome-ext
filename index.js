@@ -125,7 +125,7 @@ function renderGraphView(items) {
 
   const compressedDataPoints = compress(items, max);
 
-  var nodes = compressedDataPoints.map(function(d) {
+  const nodes = compressedDataPoints.map(function(d) {
     return {
       radius: d.radius,
       time: d.time,
@@ -199,7 +199,7 @@ function renderGraphView(items) {
 
     circles.on("mouseover", function(d) {
       // highlight circle on mouseover
-      let circle = d3.select(this);
+      const circle = d3.select(this);
       circle.style("stroke-width", 4);
 
       tooltip
@@ -214,7 +214,7 @@ function renderGraphView(items) {
       // hide tooltip
       tooltip.style("visibility", "hidden");
       // select circle and remove highlighted border
-      let circle = d3.select(this);
+      const circle = d3.select(this);
       circle.style("stroke-width", 2);
     });
 

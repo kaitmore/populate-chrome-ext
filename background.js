@@ -56,6 +56,7 @@ function handleNewWindow(newWindowId) {
   // newWindowId is an integer, so we can tell if a window has lost focus if it returns -1.
   if (activeSite && newWindowId < 0) {
     saveToLocalStorage();
+    clearActiveSiteAndStartTime();
   } else if (newWindowId > 0) {
     // If we've brought a different window into focus, we should query for the currently selected
     //  tab in that new window and call our new site handler
@@ -102,6 +103,7 @@ function saveToLocalStorage() {
   } else {
     currentState[getBaseUrl(activeSite.url)] = endTime - startTime;
   }
+  console.log("Saving to local storage", "current active site:");
   localStorage.setItem("populate", JSON.stringify(currentState));
 }
 
