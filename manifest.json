@@ -1,7 +1,7 @@
 {
-  "name": "populate",
-  "version": "1.0.1",
-  "description": "A chrome extension that visualizes your internet usage",
+  "name": "ClockIt",
+  "version": "1.0.0",
+  "description": "A chrome extension that visualizes your time on the web",
   "permissions": ["history", "tabs", "storage", "webNavigation"],
   "background": { "scripts": ["background.js"], "persistent": false },
   "browser_action": {

@@ -37,6 +37,7 @@ function handleNewSite(incomingSite) {
   // query for more info about the new tab (like URL),
   // since `newTab` only gives us a tab & window id
   chrome.tabs.get(incomingSiteId, function(newSite) {
+    if (!newSite) return;
     // if we have an active site already and that active site url is different
     // than the new tab's url, we need to set the end time for the previous site
     // and save the timing to local storage
@@ -59,6 +60,7 @@ function handleNewWindow(newWindowId) {
     // If we've brought a different window into focus, we should query for the currently selected
     //  tab in that new window and call our new site handler
     chrome.tabs.getSelected(newWindowId, function(newTab) {
+      if (!newTab) return;
       handleNewSite(newTab);
     });
   }
