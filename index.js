@@ -1,7 +1,58 @@
+const body = document.querySelector("body");
+const resetButton = document.getElementById("reset");
+const graphViewButton = document.getElementById("graph-view-button");
+const listViewButton = document.getElementById("list-view-button");
+const listViewContainer = document.getElementById("list-view-container");
+const listViewList = document.getElementById("list-view-list");
+const error = document.getElementById("error");
+let searchInput = document.getElementById("search-input");
+let listView = false;
+let searchTerm;
+
+// Display error message if there is no data
+if (!getItems().length) {
+  error.style.visibility = "visible";
+} else {
+  drawView(getItems());
+}
+
+searchInput.addEventListener("input", e => {
+  e.preventDefault();
+  resetButton.style.display = "inline";
+  searchTerm = searchInput.value;
+  drawView(getItems());
+});
+
+resetButton.addEventListener("click", e => {
+  resetButton.style.display = "none";
+  searchInput.value = "";
+  drawView(getItems());
+});
+
+listViewButton.addEventListener("click", e => {
+  // Clean up DOM
+  listView = true;
+  body.removeChild(document.querySelector("svg"));
+  listViewContainer.style.display = "block";
+  listViewButton.setAttribute("disabled", true);
+  graphViewButton.removeAttribute("disabled");
+  drawView(getItems());
+});
+
+graphViewButton.addEventListener("click", e => {
+  // Clean up DOM
+  listView = false;
+  listViewContainer.style.display = "none";
+  graphViewButton.setAttribute("disabled", true);
+  listViewButton.removeAttribute("disabled");
+  drawView(getItems());
+});
+
 function getItems() {
   let storedSites = JSON.parse(localStorage.getItem("populate")) || {};
   let items = Object.keys(storedSites)
     .filter(key => !key.startsWith("_"))
+    .filter(site => site.includes(searchInput.value)) // filter out sites that don't match search term
     .map(site => {
       return { url: site, time: storedSites[site] };
     })
@@ -12,153 +63,60 @@ function getItems() {
   return items;
 }
 
-let graphView = true;
-
-// redraw when tab is activated
-chrome.tabs.onActivated.addListener(function(x) {
-  chrome.tabs.get(x.tabId, function(active) {
-    if (active.url === "chrome://newtab/" && graphView) {
-      draw(getItems());
-    } else if (active.url === "chrome://newtab/") {
-      listView(getItems());
-    }
-  });
-});
-
-chrome.windows.onFocusChanged.addListener(function(newWindowId) {
-  if (newWindowId > 0) {
-    chrome.tabs.getSelected(newWindowId, function(active) {
-      if (active.url === "chrome://newtab/" && graphView) {
-        draw(getItems());
-      } else if (active.url === "chrome://newtab/") {
-        listView(getItems());
-      }
-    });
-  }
-});
-
-$(function() {
-  // hide and disable buttons for first query
-  $("#reset").hide();
-  $("#graph").prop("disabled", true);
-  $("div.tooltip").remove();
-
-  var searchTerm = $("#search-input").val();
-  if (!getItems().length) {
-    $("body").append("<div id='error'>Start surfin' to see results 🏄‍</div>");
+function drawView(items) {
+  if (listView) {
+    renderListView(items);
   } else {
-    draw(getItems());
+    renderGraphView(items);
   }
+}
 
-  //listen for submit, grab search data and query for it
-  $("#search-form").on("input", function(e) {
-    e.preventDefault();
-    searchTerm = $("#search-input").val();
-    $("div.tooltip").remove();
+function renderListView(items) {
+  // Clear out any previous list elements
+  listViewList.innerHTML = "";
+  // Set up the DOM
+  searchTerm = searchInput.value !== "" ? searchInput.value : "all";
+  let listViewTitle = document.createElement("li");
+  listViewTitle.id = "list-view-title";
+  listViewTitle.innerHTML =
+    "Time Spent in Category: " + searchTerm + "<span>Visit Count</span>";
+  listViewList.appendChild(listViewTitle);
+  // loop through each sorted item and append to DOM
+  items.forEach(site => {
+    const item = document.createElement("li");
 
-    $("#reset").show();
+    const link = document.createElement("a");
+    link.href = site.url;
+    link.innerText = site.url;
 
-    let filteredItems = getItems().filter(site =>
-      site.url.includes(searchTerm)
-    );
+    const timing = document.createElement("span");
+    timing.innerText = msToMinAndSec(site.time);
 
-    // if we're on list view
-    if (graphView) {
-      draw(filteredItems);
-    } else {
-      listView(filteredItems);
-    }
-  });
-
-  //redraw all items
-  $("#reset").click(function() {
-    $(this).hide();
-    $("#search-input").val("");
-    searchTerm = "";
-    $("div.tooltip").remove();
-    if (graphView) draw(getItems());
-    else listView(getItems());
-  });
-
-  //switch to list view
-  $("#list-view").click(function() {
-    graphView = false;
-    $("div.tooltip").remove();
-    $("svg").remove();
-    $("#list-view").prop("disabled", true);
-    $("#graph").prop("disabled", false);
-    listView(getItems());
-  });
-
-  //switch back to graph view
-  $("#graph").click(function() {
-    graphView = true;
-    $(".list-container").remove();
-    $("div.tooltip").remove();
-    $("#graph").prop("disabled", true);
-    $("#list-view").prop("disabled", false);
-    $("body").append("<svg> </svg>");
-    draw(getItems());
-  });
-});
-
-function listView(items) {
-  var searchTerm =
-    $("#search-input").val() !== "" ? $("#search-input").val() : "all";
-  $("div.list-container").remove();
-  //set up the DOM
-  $("body").append("<div class='list-container'></div>");
-  $(".list-container").append("<ul></ul>");
-  $("ul")
-    .addClass("list-items")
-    .append("<li class ='title'></li>");
-  $(".title").html(
-    "Time Spent in Category: " + searchTerm + "<span>Visit Count</span>"
-  );
-
-  //loop through each sorted item and append to DOM
-  $.each(items, function(i, site) {
-    var item = $("<li>");
-    var contents =
-      '<a href="' +
-      site.url +
-      '">' +
-      site.url +
-      "</a>" +
-      "<span>" +
-      msToMinAndSec(site.time) +
-      "</span>";
-    item.html(contents).appendTo($(".list-items"));
+    item.appendChild(link);
+    item.appendChild(timing);
+    listViewList.appendChild(item);
   });
 }
 
-function msToMinAndSec(millis) {
-  const d = new Date(millis);
-  const hours = d.getUTCHours() ? `${d.getUTCHours()} hrs ` : "";
-  const minutes = d.getUTCMinutes() ? `${d.getUTCMinutes()} mins ` : "";
-  const seconds = d.getUTCSeconds() ? `${d.getUTCSeconds()} secs` : "";
-  return hours + minutes + seconds;
-}
+function renderGraphView(items) {
+  // Clean up DOM
+  error.style.visibility = "hidden";
+  d3.selectAll("svg").remove();
+  d3.selectAll("#tooltip").remove();
 
-function draw(items) {
-  $("div#error").remove();
-  // clean up the DOM
-  $("div.tooltip").remove();
-  d3.selectAll("svg > *").remove();
+  const height = window.innerHeight;
+  const width = window.innerWidth;
 
-  var height = $(window).height();
-  width = $(window).width();
-
-  // create the canvas
-  d3.select("svg")
-    .attr("id", "viz")
+  // Create the canvas
+  d3.select("body")
+    .append("svg")
     .attr("height", height)
     .attr("width", width);
 
   const tooltip = d3
     .select("body")
     .append("div")
-    .attr("class", "tooltip")
+    .attr("id", "tooltip")
     .style("opacity", 0);
 
   const max = d3.max(items, function(d) {
@@ -208,45 +166,39 @@ function draw(items) {
     .on("tick", ticked);
 
   function ticked() {
-    var u = d3
+    const circles = d3
       .select("svg")
       .selectAll("circle")
       .data(newScaledData);
 
-    var a = d3
+    const links = d3
       .select("svg")
       .selectAll("a")
-      .data(newScaledData);
+      .data(newScaledData)
+      .attr("href", d => d.url);
 
-    u.enter()
+    circles
+      .enter()
       .append("a")
       .append("circle")
-      .merge(u)
-      .merge(a)
-      .attr("class", "circle")
-      .attr("index", function(d) {
-        return d.index;
-      })
-      .attr("r", function(d) {
-        return d.radius;
-      })
-      .attr("cx", function(d) {
-        return (d.x = Math.max(d.radius, Math.min(width - d.radius, d.x)));
-      })
-      .attr("cy", function(d) {
-        return (d.y = Math.max(d.radius, Math.min(height - d.radius, d.y)));
-      })
-      .attr("fill", function(d) {
-        return color(d.time);
-      })
+      .merge(circles)
+      .merge(links)
+      .attr("fill", d => color(d.time))
+      .attr("index", d => d.index)
+      .attr("r", d => d.radius)
+      .attr(
+        "cx",
+        d => (d.x = Math.max(d.radius, Math.min(width - d.radius, d.x)))
+      )
+      .attr(
+        "cy",
+        d => (d.y = Math.max(d.radius, Math.min(height - d.radius, d.y)))
+      )
       .style("stroke", "white")
+      .style("cursor", "pointer")
       .style("stroke-width", 2);
 
-    a.attr("href", function(d, i) {
-      return d.url;
-    });
-
-    u.on("mouseover", function(d, i) {
+    circles.on("mouseover", function(d) {
       // highlight circle on mouseover
       let circle = d3.select(this);
       circle.style("stroke-width", 4);
@@ -261,7 +213,7 @@ function draw(items) {
         .style("visibility", "visible");
     });
 
-    u.on("mouseout", function(d, i) {
+    circles.on("mouseout", function(d) {
       // hide tooltip
       tooltip.style("visibility", "hidden");
       // select circle and remove highlighted border
@@ -269,6 +221,26 @@ function draw(items) {
       circle.style("stroke-width", 2);
     });
 
-    u.exit().remove();
+    circles.exit().remove();
   }
 }
+
+// redraw when tab is activated
+chrome.tabs.onActivated.addListener(function(x) {
+  chrome.tabs.get(x.tabId, function(active) {
+    if (active.url === "chrome://newtab/") {
+      drawView(getItems());
+    }
+  });
+});
+
+// redraw when window is focused
+chrome.windows.onFocusChanged.addListener(function(newWindowId) {
+  if (newWindowId > 0) {
+    chrome.tabs.getSelected(newWindowId, function(active) {
+      if (active.url === "chrome://newtab/") {
+        drawView(getItems());
+      }
+    });
+  }
+});

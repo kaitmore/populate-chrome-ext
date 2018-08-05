@@ -53,11 +53,10 @@
       margin: 5px;
     }
 
-    li.title {
+    li#list-view-title {
       font-size: 25px;
       color: orange;
       border-bottom: 4px solid white;
-      margin-top: 20px;
     }
 
     .bg {
@@ -65,7 +64,6 @@
       background: #6db76c;
       padding: 0 15px;
       margin: 9px;
-      height: 47px;
     }
 
     .btn {
@@ -82,7 +80,7 @@
       padding: 0 15px;
     }
 
-    div.tooltip {
+    #tooltip {
       position: absolute;
       text-align: center;
       padding: 6px;
@@ -94,11 +92,12 @@
       pointer-events: none;
     }
 
-    .list-container {
+    #list-view-container {
       color: white;
       margin: 200px;
-      padding: 10px;
+      padding: 0 10px;
       overflow: scroll;
+      display: none;
     }
 
     #search {
@@ -107,7 +106,7 @@
       padding: 10px;
     }
 
-    #view {
+    #controls {
       position: absolute;
       display: flex;
       justify-content: center;
@@ -123,7 +122,7 @@
     }
 
     #reset {
-      display: inline;
+      display: none;
     }
 
     #search-form {
@@ -147,25 +146,22 @@
 
   <div id="search">
     <span class="glyphicon glyphicon-search"></span>
-    <form id="search-form">
-      <input type=text id="search-input">
-      </input>
-      <button id="submit-button" class="btn btn-primary" type="submit">Filter</button>
-    </form>
+    <input type=text id="search-input">
+    </input>
     <button id="reset" class="btn btn-danger">Reset</button>
   </div>
-  <div id="view">
-    <button id="list-view" class="btn btn-info">List</button>
-    <button id="graph" class="btn btn-warning">Graph</button>
+  <div id="controls">
+    <button id="list-view-button" class="btn btn-info">List</button>
+    <button id="graph-view-button" class="btn btn-warning" disabled="true">Graph</button>
   </div>
-
-
-  <svg>
-  </svg>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.5.0/d3.min.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.10/lodash.min.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/d3-scale/1.0.7/d3-scale.min.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-  <script defer src="helpers.js"></script>
-  <script defer src="index.js"></script>
+  <div id="list-view-container">
+    <ul id="list-view-list">
+    </ul>
+  </div>
+  <div id='error'>Start surfin' to see results 🏄‍</div>
+  <script defer src=" https://cdnjs.cloudflare.com/ajax/libs/d3/5.5.0/d3.min.js "></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.10/lodash.min.js "></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/d3-scale/1.0.7/d3-scale.min.js "></script>
+  <script defer src="helpers.js "></script>
+  <script defer src="index.js "></script>
 </body>

@@ -25,7 +25,7 @@ function cut(string) {
   return string.length < 40 ? string : string.substr(0, 25) + "...";
 }
 
-//Get the host name for graph mode
+// Get the host name for graph mode
 function getHostName(url) {
   var base = url.split("//");
   base = base[1].split(".");
@@ -46,4 +46,12 @@ function getBaseUrl(url) {
   var temp = document.createElement("a");
   temp.href = url;
   return temp.origin + "/";
+}
+
+function msToMinAndSec(millis) {
+  const d = new Date(millis);
+  const hours = d.getUTCHours() ? `${d.getUTCHours()} hrs ` : "";
+  const minutes = d.getUTCMinutes() ? `${d.getUTCMinutes()} mins ` : "";
+  const seconds = d.getUTCSeconds() ? `${d.getUTCSeconds()} secs` : "";
+  return hours + minutes + seconds;
 }
