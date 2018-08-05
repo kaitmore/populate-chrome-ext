@@ -204,9 +204,7 @@ function renderGraphView(items) {
       circle.style("stroke-width", 4);
 
       tooltip
-        .html(
-          cut(d.title) + "<br/> - <br/>Time Spent: " + msToMinAndSec(d.time)
-        )
+        .html(d.title + "<br/> - <br/>Time Spent: " + msToMinAndSec(d.time))
         .style("left", d3.event.pageX + "px")
         .style("top", d3.event.pageY + "px")
         .style("opacity", 0.9)

@@ -19,6 +19,7 @@ function compress(arr, max, range) {
   }
   return compressedVals;
 }
+
 function getBaseUrl(url) {
   var temp = document.createElement("a");
   temp.href = url;
